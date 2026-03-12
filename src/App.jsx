@@ -1,11 +1,13 @@
+import Navbar from "./Components/Navbar";
+import SearchBar from "./Components/Searchbar";
+
 function App() {
   return (
-    <div className="h-screen flex items-center justify-center">
-      <h1 className="text-blue-500 text-5xl font-bold">
-        Coucou
-      </h1>
+    <div>
+      <Navbar />
+      <SearchBar />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
