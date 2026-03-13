@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Navbar from "./Components/Navbar";
-import SearchBar from "./Components/SearchBar";
+import SearchBar from "./Components/Searchbar";
 import WeatherBackground from "./Components/WeatherBackground";
 import WeatherResult from "./Components/WeatherResult";
 import Footer from "./Components/Footer";
