@@ -16,6 +16,7 @@ function App() {
       const geoResponse = await fetch(
         `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}`
       );
+
       const geoData = await geoResponse.json();
 
       if (!geoData.results || geoData.results.length === 0) return;
@@ -25,6 +26,7 @@ function App() {
       const weatherResponse = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,wind_speed_10m,weather_code`
       );
+
       const weatherData = await weatherResponse.json();
 
       setWeather({
@@ -40,10 +42,13 @@ function App() {
     }
   };
 
+  const resetWeather = () => {
+    setWeather(null);
+  };
+
   const addFavorite = (city) => {
-    const normalizedCity = city.trim();
-    if (!favorites.includes(normalizedCity)) {
-      const updated = [...favorites, normalizedCity];
+    if (!favorites.includes(city)) {
+      const updated = [...favorites, city];
       setFavorites(updated);
       localStorage.setItem("favorites", JSON.stringify(updated));
     }
@@ -65,37 +70,42 @@ function App() {
 
   const isFavorite = weather ? favorites.includes(weather.city) : false;
 
-  const resetWeather = () => {
-  setWeather(null);
-};
-
   return (
     <WeatherBackground code={weather?.code} weatherLoaded={!!weather}>
-      <div className="relative z-10 min-h-screen">
-       <Navbar
-  favorites={favorites}
-  onSelectFavorite={searchCity}
-  onRemoveFavorite={removeFavorite}
-  onReset={resetWeather}
-/>
+      <div className="relative z-10 min-h-screen flex flex-col">
 
-        <main className="px-3 sm:px-4 md:px-6 pb-8 md:pb-10">
-          <SearchBar onSearch={searchCity} />
+        <Navbar
+          favorites={favorites}
+          onSelectFavorite={searchCity}
+          onRemoveFavorite={removeFavorite}
+          onReset={resetWeather}
+        />
 
-          {weather && (
-            <WeatherResult
-              city={weather.city}
-              displayCity={weather.displayCity}
-              temp={weather.temp}
-              wind={weather.wind}
-              code={weather.code}
-              apparent={weather.apparent}
-              isFavorite={isFavorite}
-              toggleFavorite={toggleFavorite}
-            />
-          )}
+        <main
+          className={`flex-1 px-3 sm:px-4 md:px-6 pb-8 md:pb-10 ${
+            !weather ? "flex items-center justify-center" : ""
+          }`}
+        >
+          <div className="w-full max-w-3xl">
+            <SearchBar onSearch={searchCity} />
+
+            {weather && (
+              <WeatherResult
+                city={weather.city}
+                displayCity={weather.displayCity}
+                temp={weather.temp}
+                wind={weather.wind}
+                code={weather.code}
+                apparent={weather.apparent}
+                isFavorite={isFavorite}
+                toggleFavorite={toggleFavorite}
+              />
+            )}
+          </div>
         </main>
+
         <Footer />
+
       </div>
     </WeatherBackground>
   );
