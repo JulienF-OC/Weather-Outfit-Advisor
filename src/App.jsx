@@ -3,6 +3,7 @@ import Navbar from "./Components/Navbar";
 import SearchBar from "./Components/SearchBar";
 import WeatherBackground from "./Components/WeatherBackground";
 import WeatherResult from "./Components/WeatherResult";
+import Footer from "./Components/Footer";
 
 function App() {
   const [weather, setWeather] = useState(null);
@@ -94,6 +95,7 @@ function App() {
             />
           )}
         </main>
+        <Footer />
       </div>
     </WeatherBackground>
   );
