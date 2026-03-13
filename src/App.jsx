@@ -1,66 +1,101 @@
 import { useState } from "react";
 import Navbar from "./Components/Navbar";
-import SearchBar from "./Components/Searchbar";
+import SearchBar from "./Components/SearchBar";
+import WeatherBackground from "./Components/WeatherBackground";
 import WeatherResult from "./Components/WeatherResult";
 
 function App() {
   const [weather, setWeather] = useState(null);
+  const [favorites, setFavorites] = useState(
+    JSON.parse(localStorage.getItem("favorites")) || []
+  );
 
   const searchCity = async (city) => {
-    // API géolocalisation
-    const geoResponse = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${city}`,
-    );
+    try {
+      const geoResponse = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}`
+      );
+      const geoData = await geoResponse.json();
 
-    const geoData = await geoResponse.json();
+      if (!geoData.results || geoData.results.length === 0) return;
 
-    if (!geoData.results) return;
+      const { latitude, longitude, name, country } = geoData.results[0];
 
-    const { latitude, longitude, name } = geoData.results[0];
+      const weatherResponse = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,wind_speed_10m,weather_code`
+      );
+      const weatherData = await weatherResponse.json();
 
-    // API météo
-    const weatherResponse = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,wind_speed_10m,weather_code`,
-    );
-    const weatherData = await weatherResponse.json();
-
-    setWeather({
-      city: name,
-      temp: weatherData.current.temperature_2m,
-      wind: weatherData.current.wind_speed_10m,
-      code: weatherData.current.weather_code,
-      apparent: weatherData.current.apparent_temperature,
-    });
+      setWeather({
+        city: name,
+        displayCity: `${name}${country ? `, ${country}` : ""}`,
+        temp: Math.round(weatherData.current.temperature_2m),
+        wind: Math.round(weatherData.current.wind_speed_10m),
+        code: weatherData.current.weather_code,
+        apparent: Math.round(weatherData.current.apparent_temperature),
+      });
+    } catch (error) {
+      console.error("Erreur météo :", error);
+    }
   };
 
-  const [favorites, setFavorites] = useState(
-  JSON.parse(localStorage.getItem("favorites")) || []
-);
+  const addFavorite = (city) => {
+    const normalizedCity = city.trim();
+    if (!favorites.includes(normalizedCity)) {
+      const updated = [...favorites, normalizedCity];
+      setFavorites(updated);
+      localStorage.setItem("favorites", JSON.stringify(updated));
+    }
+  };
 
-function addFavorite(city) {
-  if (!favorites.includes(city)) {
-    const updated = [...favorites, city];
+  const removeFavorite = (city) => {
+    const updated = favorites.filter((fav) => fav !== city);
     setFavorites(updated);
     localStorage.setItem("favorites", JSON.stringify(updated));
-  }
-}
+  };
+
+  const toggleFavorite = (city) => {
+    if (favorites.includes(city)) {
+      removeFavorite(city);
+    } else {
+      addFavorite(city);
+    }
+  };
+
+  const isFavorite = weather ? favorites.includes(weather.city) : false;
+
+  const resetWeather = () => {
+  setWeather(null);
+};
 
   return (
-    <div>
-      <Navbar />
-      <SearchBar onSearch={searchCity} />
+    <WeatherBackground code={weather?.code} weatherLoaded={!!weather}>
+      <div className="relative z-10 min-h-screen">
+       <Navbar
+  favorites={favorites}
+  onSelectFavorite={searchCity}
+  onRemoveFavorite={removeFavorite}
+  onReset={resetWeather}
+/>
 
-      {weather && (
-        <WeatherResult
-          city={weather.city}
-          temp={weather.temp}
-          wind={weather.wind}
-          code={weather.code}
-          apparent={weather.apparent}
-          addFavorite={addFavorite}
-        />
-      )}
-    </div>
+        <main className="px-3 sm:px-4 md:px-6 pb-8 md:pb-10">
+          <SearchBar onSearch={searchCity} />
+
+          {weather && (
+            <WeatherResult
+              city={weather.city}
+              displayCity={weather.displayCity}
+              temp={weather.temp}
+              wind={weather.wind}
+              code={weather.code}
+              apparent={weather.apparent}
+              isFavorite={isFavorite}
+              toggleFavorite={toggleFavorite}
+            />
+          )}
+        </main>
+      </div>
+    </WeatherBackground>
   );
 }
 
