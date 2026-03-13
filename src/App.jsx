@@ -20,18 +20,30 @@ function App() {
 
     // API météo
     const weatherResponse = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`,
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,wind_speed_10m,weather_code`,
     );
-
     const weatherData = await weatherResponse.json();
 
     setWeather({
       city: name,
-      temp: weatherData.current_weather.temperature,
-      wind: weatherData.current_weather.windspeed,
-      code: weatherData.current_weather.weathercode,
+      temp: weatherData.current.temperature_2m,
+      wind: weatherData.current.wind_speed_10m,
+      code: weatherData.current.weather_code,
+      apparent: weatherData.current.apparent_temperature,
     });
   };
+
+  const [favorites, setFavorites] = useState(
+  JSON.parse(localStorage.getItem("favorites")) || []
+);
+
+function addFavorite(city) {
+  if (!favorites.includes(city)) {
+    const updated = [...favorites, city];
+    setFavorites(updated);
+    localStorage.setItem("favorites", JSON.stringify(updated));
+  }
+}
 
   return (
     <div>
@@ -44,6 +56,8 @@ function App() {
           temp={weather.temp}
           wind={weather.wind}
           code={weather.code}
+          apparent={weather.apparent}
+          addFavorite={addFavorite}
         />
       )}
     </div>

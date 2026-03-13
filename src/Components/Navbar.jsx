@@ -3,24 +3,34 @@ import { Star } from "lucide-react";
 
 function Navbar() {
   return (
-    <nav className="bg-transparent p-4 flex justify-between items-center text-white border-b border-gray-200">
-      <div className="flex items-center space-x-2 ml-10">
+    <nav className="bg-white border-b border-slate-200 px-10 py-3 flex justify-between items-center">
+
+      {/* Logo + titre */}
+      <div className="flex items-center gap-2">
         <img
           src={Logo}
-          alt="Soleil jaune caché derrière un nuage bleu avec une doudoune devant ces derniers."
-          className="w-17 h-10"
+          alt="Weather Outfit Advisor logo"
+          className="w-10 h-10"
         />
-        <h1 className="font-bold text-xl text-shadow-lg">Weather Outfit Advisor</h1>
+        <h1 className="font-semibold text-lg text-slate-900">
+          Weather Outfit Advisor
+        </h1>
       </div>
-      <div className="flex gap-10 mr-10">
-      <button className="bg-blue-600 text-white px-4 py-1 rounded flex items-center space-x-1 rounded-lg hover:bg-blue-500 cursor-pointer transition-colors duration-200">
-        <Star className="text-yellow-400 w-5 h-5" fill="currentColor" />
-        <span>Favoris</span>
-      </button>
-      <button className="bg-blue-50 text-blue-600 px-4 py-1.5 rounded space-x-1 rounded-lg cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors duration-200">
-        <span>Ajouter à mes favoris</span>
-      </button>
+
+      {/* Boutons */}
+      <div className="flex items-center gap-4">
+
+        <button className="flex items-center gap-1 bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition">
+          <Star className="w-4 h-4" fill="currentColor"/>
+          Favoris
+        </button>
+
+        <button className="px-4 py-1.5 text-slate-600 hover:text-blue-600 transition">
+          Ajouter à mes favoris
+        </button>
+
       </div>
+
     </nav>
   );
 }
