@@ -19,6 +19,11 @@ function WeatherResult({
   isFavorite,
   toggleFavorite,
 }) {
+  const isRain =
+    (code >= 45 && code <= 67) || (code >= 80 && code <= 82);
+  const isSnow = code >= 71 && code <= 77;
+  const isWindy = wind >= 25;
+
   const getWeatherIcon = () => {
     if (code === 0) {
       return (
@@ -30,12 +35,12 @@ function WeatherResult({
         <Cloud className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 text-white/90" />
       );
     }
-    if ((code >= 45 && code <= 67) || (code >= 80 && code <= 82)) {
+    if (isRain) {
       return (
         <CloudRain className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 text-sky-200" />
       );
     }
-    if (code >= 71 && code <= 77) {
+    if (isSnow) {
       return (
         <CloudSnow className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 text-slate-100" />
       );
@@ -48,11 +53,112 @@ function WeatherResult({
   const getWeatherLabel = () => {
     if (code === 0) return "Ensoleillé";
     if (code >= 1 && code <= 3) return "Nuageux";
-    if ((code >= 45 && code <= 67) || (code >= 80 && code <= 82))
-      return "Pluvieux";
-    if (code >= 71 && code <= 77) return "Neigeux";
+    if (isRain) return "Pluvieux";
+    if (isSnow) return "Neigeux";
     return "Temps variable";
   };
+
+  const getOutfit = () => {
+    if (isSnow) {
+      if (apparent <= -5) {
+        return {
+          outerwear: "Manteau épais",
+          top: "Pull thermique",
+          bottom: "Pantalon épais",
+          shoes: "Bottes étanches",
+          tip: "Temps très froid, couvre-toi bien avec bonnet, gants et chaussures isolantes.",
+        };
+      }
+
+      return {
+        outerwear: "Manteau chaud",
+        top: "Pull chaud",
+        bottom: "Pantalon",
+        shoes: "Chaussures étanches",
+        tip: "Temps neigeux, privilégie des vêtements chauds et des chaussures qui isolent bien.",
+      };
+    }
+
+    if (isRain) {
+      if (apparent <= 8) {
+        return {
+          outerwear: "Manteau imperméable",
+          top: "Pull chaud",
+          bottom: "Pantalon",
+          shoes: "Chaussures étanches",
+          tip: "Prends un parapluie ou une veste imperméable, la pluie et l’humidité refroidissent vite.",
+        };
+      }
+
+      if (apparent <= 15) {
+        return {
+          outerwear: "Veste imperméable",
+          top: "Pull léger",
+          bottom: "Pantalon",
+          shoes: "Chaussures étanches",
+          tip: "Même si la température reste douce, la pluie demande une couche extérieure imperméable.",
+        };
+      }
+
+      return {
+        outerwear: isWindy ? "Coupe-vent imperméable" : "Veste imperméable légère",
+        top: "T-shirt",
+        bottom: "Léger",
+        shoes: "Chaussures étanches",
+        tip: "Temps doux mais pluvieux, privilégie surtout une protection contre la pluie.",
+      };
+    }
+
+    if (apparent <= 0) {
+      return {
+        outerwear: "Manteau épais",
+        top: "Pull thermique",
+        bottom: "Pantalon épais",
+        shoes: "Chaussures fermées",
+        tip: "Le ressenti est très froid, privilégie plusieurs couches isolantes.",
+      };
+    }
+
+    if (apparent <= 8) {
+      return {
+        outerwear: "Manteau",
+        top: "Pull chaud",
+        bottom: "Pantalon",
+        shoes: "Chaussures fermées",
+        tip: "Temps frais, un manteau et un haut chaud seront plus adaptés.",
+      };
+    }
+
+    if (apparent <= 15) {
+      return {
+        outerwear: isWindy ? "Coupe-vent" : "Veste",
+        top: "Pull léger",
+        bottom: "Pantalon",
+        shoes: "Chaussures fermées",
+        tip: "Temps modéré, une veste ou un coupe-vent suffit généralement.",
+      };
+    }
+
+    if (apparent <= 22) {
+      return {
+        outerwear: isWindy ? "Couche légère" : "Optionnelle",
+        top: "T-shirt / pull fin",
+        bottom: "Pantalon léger",
+        shoes: "Confortables",
+        tip: "Température agréable, garde éventuellement une couche légère si besoin.",
+      };
+    }
+
+    return {
+      outerwear: "Aucune",
+      top: "T-shirt",
+      bottom: "Très léger",
+      shoes: "Légères",
+      tip: "Temps chaud, privilégie une tenue légère et respirante.",
+    };
+  };
+
+  const outfit = getOutfit();
 
   return (
     <section className="mx-auto mt-5 sm:mt-6 md:mt-10 max-w-6xl">
@@ -135,6 +241,7 @@ function WeatherResult({
               </div>
             </div>
 
+            {/* Tablette + Desktop */}
             <div className="hidden sm:flex flex-col">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
@@ -235,28 +342,17 @@ function WeatherResult({
                   </span>
                 </span>
                 <span className="text-sm md:text-base font-medium text-white">
-                  {(code >= 45 && code <= 67) || (code >= 80 && code <= 82)
-                    ? "Imperméable"
-                    : apparent <= 10
-                      ? "Manteau"
-                      : "Optionnelle"}
+                  {outfit.outerwear}
                 </span>
               </div>
+
               <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-white/85">
                 <span className="flex items-center gap-2">
                   <span className="text-lg">👕</span>
                   <span className="text-sm md:text-base">Haut</span>
                 </span>
                 <span className="text-sm md:text-base font-medium text-white">
-                  {apparent <= 0
-                    ? "Manteau épais"
-                    : apparent <= 8
-                      ? "Manteau"
-                      : apparent <= 15
-                        ? "Veste"
-                        : apparent <= 22
-                          ? "Pull léger"
-                          : "T-shirt"}
+                  {outfit.top}
                 </span>
               </div>
 
@@ -266,7 +362,7 @@ function WeatherResult({
                   <span className="text-sm md:text-base">Bas</span>
                 </span>
                 <span className="text-sm md:text-base font-medium text-white">
-                  {apparent <= 10 ? "Pantalon" : "Léger"}
+                  {outfit.bottom}
                 </span>
               </div>
 
@@ -276,9 +372,7 @@ function WeatherResult({
                   <span className="text-sm md:text-base">Chaussures</span>
                 </span>
                 <span className="text-sm md:text-base font-medium text-white">
-                  {(code >= 45 && code <= 67) || (code >= 80 && code <= 82)
-                    ? "Étanches"
-                    : "Confortables"}
+                  {outfit.shoes}
                 </span>
               </div>
             </div>
@@ -288,13 +382,7 @@ function WeatherResult({
                 Astuce du jour
               </p>
               <p className="mt-2 text-sm md:text-base text-white/80 leading-relaxed">
-                {wind >= 25
-                  ? "Le vent est soutenu, prévois une couche coupe-vent."
-                  : code >= 71 && code <= 77
-                    ? "Temps froid, privilégie des vêtements bien isolants."
-                    : (code >= 45 && code <= 67) || (code >= 80 && code <= 82)
-                      ? "Pense à prendre un parapluie ou une veste imperméable."
-                      : "Temps plutôt agréable, privilégie une tenue légère et confortable."}
+                {outfit.tip}
               </p>
             </div>
           </div>

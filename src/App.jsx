@@ -7,7 +7,8 @@ import Footer from "./Components/Footer";
 
 function App() {
   const [weather, setWeather] = useState(null);
-  const [locationError, setLocationError] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const [isLocating, setIsLocating] = useState(true);
   const [favorites, setFavorites] = useState(
     JSON.parse(localStorage.getItem("favorites")) || []
   );
@@ -18,15 +19,26 @@ function App() {
         `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}`
       );
 
+      if (!geoResponse.ok) {
+        throw new Error("Erreur lors de la recherche de la ville.");
+      }
+
       const geoData = await geoResponse.json();
 
-      if (!geoData.results || geoData.results.length === 0) return;
+      if (!geoData.results || geoData.results.length === 0) {
+        setLocationError("Ville introuvable. Essayez une autre recherche.");
+        return;
+      }
 
       const { latitude, longitude, name, country } = geoData.results[0];
 
       const weatherResponse = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,wind_speed_10m,weather_code`
       );
+
+      if (!weatherResponse.ok) {
+        throw new Error("Erreur lors de la récupération de la météo.");
+      }
 
       const weatherData = await weatherResponse.json();
 
@@ -39,28 +51,43 @@ function App() {
         apparent: Math.round(weatherData.current.apparent_temperature),
       });
 
-      setLocationError(false);
+      setLocationError("");
     } catch (error) {
       console.error("Erreur météo :", error);
+      setLocationError("Impossible de récupérer la météo pour cette ville.");
     }
   };
 
   const fetchWeatherByCoords = async (latitude, longitude) => {
     try {
+      setLocationError("");
+
       const weatherResponse = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,wind_speed_10m,weather_code`
       );
 
+      if (!weatherResponse.ok) {
+        throw new Error("Erreur lors de la récupération de la météo.");
+      }
+
       const weatherData = await weatherResponse.json();
 
-      const reverseGeoResponse = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}`
-      );
+      let cityName = "Votre position";
+      let countryName = "";
 
-      const reverseGeoData = await reverseGeoResponse.json();
+      try {
+        const reverseGeoResponse = await fetch(
+          `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}`
+        );
 
-      const cityName = reverseGeoData.results?.[0]?.name || "Votre position";
-      const countryName = reverseGeoData.results?.[0]?.country || "";
+        if (reverseGeoResponse.ok) {
+          const reverseGeoData = await reverseGeoResponse.json();
+          cityName = reverseGeoData.results?.[0]?.name || "Votre position";
+          countryName = reverseGeoData.results?.[0]?.country || "";
+        }
+      } catch (error) {
+        console.error("Erreur reverse geocoding :", error);
+      }
 
       setWeather({
         city: cityName,
@@ -70,17 +97,22 @@ function App() {
         code: weatherData.current.weather_code,
         apparent: Math.round(weatherData.current.apparent_temperature),
       });
-
-      setLocationError(false);
     } catch (error) {
       console.error("Erreur météo géolocalisée :", error);
-      setLocationError(true);
+      setLocationError(
+        "Impossible de récupérer votre position automatiquement. Recherchez une ville."
+      );
+    } finally {
+      setIsLocating(false);
     }
   };
 
   useEffect(() => {
     if (!("geolocation" in navigator)) {
-      setLocationError(true);
+      setLocationError(
+        "La géolocalisation n’est pas prise en charge par votre navigateur."
+      );
+      setIsLocating(false);
       return;
     }
 
@@ -91,30 +123,82 @@ function App() {
           position.coords.longitude
         );
       },
-      () => {
-        setLocationError(true);
+      (error) => {
+        console.error("Erreur de géolocalisation :", error);
+
+        if (error.code === 1) {
+          setLocationError(
+            "Vous avez refusé la géolocalisation. Recherchez une ville."
+          );
+        } else if (error.code === 2) {
+          setLocationError("Position introuvable. Recherchez une ville.");
+        } else if (error.code === 3) {
+          setLocationError(
+            "La demande de géolocalisation a expiré. Recherchez une ville."
+          );
+        } else {
+          setLocationError(
+            "Impossible de récupérer votre position. Recherchez une ville."
+          );
+        }
+
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000,
       }
     );
   }, []);
 
   const resetWeather = () => {
     setWeather(null);
+    setLocationError("");
+    setIsLocating(true);
 
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          fetchWeatherByCoords(
-            position.coords.latitude,
-            position.coords.longitude
-          );
-        },
-        () => {
-          setLocationError(true);
-        }
+    if (!("geolocation" in navigator)) {
+      setLocationError(
+        "La géolocalisation n’est pas prise en charge par votre navigateur."
       );
-    } else {
-      setLocationError(true);
+      setIsLocating(false);
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        fetchWeatherByCoords(
+          position.coords.latitude,
+          position.coords.longitude
+        );
+      },
+      (error) => {
+        console.error("Erreur de géolocalisation :", error);
+
+        if (error.code === 1) {
+          setLocationError(
+            "Vous avez refusé la géolocalisation. Recherchez une ville."
+          );
+        } else if (error.code === 2) {
+          setLocationError("Position introuvable. Recherchez une ville.");
+        } else if (error.code === 3) {
+          setLocationError(
+            "La demande de géolocalisation a expiré. Recherchez une ville."
+          );
+        } else {
+          setLocationError(
+            "Impossible de récupérer votre position. Recherchez une ville."
+          );
+        }
+
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000,
+      }
+    );
   };
 
   const addFavorite = (city) => {
@@ -165,46 +249,54 @@ function App() {
 
                 <SearchBar onSearch={searchCity} />
 
-                {locationError && (
-                  <p className="mt-4 text-center text-sm text-red-400">
-                    Impossible de récupérer votre localisation. Recherchez une
-                    ville pour voir la météo.
+                {isLocating && !locationError && (
+                  <p className="mt-4 text-center text-sm text-white/70">
+                    Détection de votre position...
                   </p>
                 )}
 
-                {/* Cartes explicatives */}
-                <div className="mt-10 grid gap-4 sm:grid-cols-3 text-center">
+                {!!locationError && (
+                  <p className="mt-4 text-center text-sm text-red-400">
+                    {locationError}
+                  </p>
+                )}
 
+                <div className="mt-10 grid gap-4 sm:grid-cols-3 text-center">
                   <div className="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-lg">
-                    <div className="text-2xl mb-2">📍</div>
+                    <div className="mb-2 text-2xl">📍</div>
                     <p className="font-medium text-white">Localisation</p>
-                    <p className="text-sm text-white/70 mt-1">
+                    <p className="mt-1 text-sm text-white/70">
                       Détectez automatiquement la météo autour de vous.
                     </p>
                   </div>
 
                   <div className="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-lg">
-                    <div className="text-2xl mb-2">⭐</div>
+                    <div className="mb-2 text-2xl">⭐</div>
                     <p className="font-medium text-white">Favoris</p>
-                    <p className="text-sm text-white/70 mt-1">
+                    <p className="mt-1 text-sm text-white/70">
                       Enregistrez vos villes préférées facilement.
                     </p>
                   </div>
 
                   <div className="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-lg">
-                    <div className="text-2xl mb-2">👕</div>
+                    <div className="mb-2 text-2xl">👕</div>
                     <p className="font-medium text-white">Tenue conseillée</p>
-                    <p className="text-sm text-white/70 mt-1">
+                    <p className="mt-1 text-sm text-white/70">
                       Recevez des conseils selon la météo du jour.
                     </p>
                   </div>
-
                 </div>
               </div>
             </div>
           ) : (
             <>
               <SearchBar onSearch={searchCity} />
+
+              {!!locationError && (
+                <p className="mt-4 text-center text-sm text-red-400">
+                  {locationError}
+                </p>
+              )}
 
               <WeatherResult
                 city={weather.city}
